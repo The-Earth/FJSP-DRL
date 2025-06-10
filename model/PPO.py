@@ -99,11 +99,11 @@ class Memory:
         reward_arr = torch.stack(self.reward_seq, dim=0)
         values = self.t_old_val_seq.transpose(0, 1)
         len_trajectory, len_envs = reward_arr.shape
-
+        # advantage is cumulated reward g = r_i + gamma * r_{i+1} , r is cumulated reward
         advantage = torch.zeros(len_envs, device=values.device)
         advantage_seq = []
         for i in reversed(range(len_trajectory)):
-
+        # delta = r_i - v_i, r_i - gamma * v_i+1 - v_i
             if i == len_trajectory - 1:
                 delta_t = reward_arr[i] - values[i]
             else:
@@ -142,7 +142,7 @@ class PPO:
         self.entloss_coef = config.entloss_coef
         self.minibatch_size = config.minibatch_size
 
-        self.policy = DANIEL(config)
+        self.policy = DANIEL(config).to(device=config.device)
         self.policy_old = deepcopy(self.policy)
 
         self.policy_old.load_state_dict(self.policy.state_dict())

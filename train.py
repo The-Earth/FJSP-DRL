@@ -41,10 +41,14 @@ class Trainer:
         if not os.path.exists(f'./train_log/{self.data_source}'):
             os.makedirs(f'./train_log/{self.data_source}')
 
+        torch.set_default_dtype(torch.float32)
         if device.type == 'cuda':
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            torch.set_default_device('cuda')
+        elif device.type == 'mps':
+            # torch.set_default_device('mps')
+            torch.set_default_device('cpu')
         else:
-            torch.set_default_tensor_type('torch.FloatTensor')
+            torch.set_default_device('cpu')
 
         if self.data_source == 'SD1':
             self.data_name = f'{self.n_j}x{self.n_m}'
@@ -126,10 +130,10 @@ class Trainer:
                 # state transition
                 state, reward, done = self.env.step(actions=action_envs.cpu().numpy())
                 ep_rewards += reward
-                reward = torch.from_numpy(reward).to(device)
+                reward = torch.from_numpy(reward).to(torch.float32).to(device)
 
                 # collect the transition
-                self.memory.done_seq.append(torch.from_numpy(done).to(device))
+                self.memory.done_seq.append(torch.from_numpy(done).to(torch.float32).to(device))
                 self.memory.reward_seq.append(reward)
                 self.memory.action_seq.append(action_envs)
                 self.memory.log_probs.append(action_logprob_envs)
@@ -291,7 +295,7 @@ class Trainer:
             load the trained model
         """
         model_path = f'./trained_network/{self.data_source}/{self.model_name}.pth'
-        self.ppo.policy.load_state_dict(torch.load(model_path, map_location='cuda'))
+        self.ppo.policy.load_state_dict(torch.load(model_path, map_location=device))
 
 
 def main():
